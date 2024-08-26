@@ -76,6 +76,48 @@ class APIClient:
         """Retrieve a specific item by its ID."""
         return self._filter_json(self._make_request(f"/object/item/{item_id}"))
     
+    def delete_item(self, item_id):
+        return self._make_request(f'/object/item/{item_id}', method='DELETE')
+    
+    def prompt_user_confirmation(self, message):
+        user_input = input(f"{message} (y/n): ").strip().lower()
+        return user_input in {'y', 'yes'}
+
+    def delete_items(self, removed):
+        
+        if not self.prompt_user_confirmation("Proceed to delete these duplicate items?"):
+            print("Operation canceled.")
+            return {
+                'success_count': 0,
+                'failure_count': 0,
+                'failed_items': []
+            }
+
+        success_count = 0
+        failure_count = 0
+        failed_items = []
+
+        for item in removed:
+            response = self.delete_item(item['id'])
+            if response['success']:
+                success_count += 1
+                print(f'Item Deletion {success_count}: {item['id']} successfully deleted\n')
+            else:
+                failure_count += 1
+                failed_items.append(item['id'])
+
+        print(f"Deletion Summary: {success_count} items successfully deleted.")
+        if failure_count > 0:
+            print(f"{failure_count} deletions failed. Failed items: {failed_items}\n")
+        else:
+            print("All deletions were successful.\n")
+
+        return {
+            'success_count': success_count,
+            'failure_count': failure_count,
+            'failed_items': failed_items
+        }
+    
     def create_entries(self, data):
         """Create new entries by extracting and mapping fields from the data."""
         new_entries = []
@@ -156,13 +198,12 @@ class DataCleaner:
       
         self.deleted_entries = deleted_entries
         self.cleaned_entries = unique_entries
-        
 
-        print(f"Initial number of entries: {initial_count}")
-        print(f"Number of unique entries: {len(unique_entries)}")
-        print(f"Number of entries with TOTP: {count_totp}")
-        print(f"Number of entries without TOTP: {count_no_totp}")
-        print(f"Number of deleted entries: {len(deleted_entries)}")
+        print(f"\nTotal Vault Items: {initial_count}")
+        print(f"Number of unique items: {len(unique_entries)}")
+        # print(f"Number of entries with TOTP: {count_totp}")
+        # print(f"Number of entries without TOTP: {count_no_totp}")
+        print(f"Number of duplicate items: {len(deleted_entries)}\n")
 
     def get_cleaned_entries(self):
         return self.cleaned_entries
@@ -224,5 +265,10 @@ if __name__ == "__main__":
     validator.load_cleaned_entries(cleaner.cleaned_entries)
     validator.load_deleted_entries(cleaner.deleted_entries)
     validator.validate_deleted_entries()
+
+   
+    client.delete_items(cleaner.deleted_entries)
+
+    
 
 
