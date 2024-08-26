@@ -6,7 +6,7 @@ import requests
 
 class APIClient:
     def __init__(self):
-        self.BASE_URL = os.getenv("URL") 
+        self.BASE_URL = os.getenv("URL", "http://localhost:8087")
         self.hash_key_values = ['password', 'passwordHistory', 'fido2Credentials', 'totp']
         self.fields_to_extract = {
         'id': 'id',
