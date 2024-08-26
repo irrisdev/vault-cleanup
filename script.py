@@ -1,8 +1,9 @@
 import hashlib
-import json
 import os
+import sys
 from dotenv import load_dotenv
 import requests
+import concurrent.futures
 
 class APIClient:
     def __init__(self):
@@ -76,12 +77,16 @@ class APIClient:
         """Retrieve a specific item by its ID."""
         return self._filter_json(self._make_request(f"/object/item/{item_id}"))
     
-    def delete_item(self, item_id):
-        return self._make_request(f'/object/item/{item_id}', method='DELETE')
-    
     def prompt_user_confirmation(self, message):
         user_input = input(f"{message} (y/n): ").strip().lower()
         return user_input in {'y', 'yes'}
+
+    def delete_item(self, item_id):
+        response = self._make_request(f'/object/item/{item_id}', method='DELETE')
+        if response['success']:
+            return {'item_id': item_id,"success": True}
+        else:
+            {'item_id': item_id, 'success': False}
 
     def delete_items(self, removed):
         
@@ -97,14 +102,23 @@ class APIClient:
         failure_count = 0
         failed_items = []
 
-        for item in removed:
-            response = self.delete_item(item['id'])
-            if response['success']:
-                success_count += 1
-                print(f'Item Deletion {success_count}: {item['id']} successfully deleted\n')
-            else:
-                failure_count += 1
-                failed_items.append(item['id'])
+        def delete_task(item_id):
+            result = self.delete_item(item_id)
+            return result
+        
+        with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+        # Create a future-to-item_id mapping
+            future_to_id = {executor.submit(delete_task, item['id']): item['id'] for item in removed if item.get('id')}
+
+            for future in concurrent.futures.as_completed(future_to_id):
+                result = future.result()
+                item_id = result['item_id']
+                if result['success']:
+                    success_count += 1
+                    print(f'Item Deletion {success_count}: {item_id} successfully deleted\n')
+                else:
+                    failure_count += 1
+                    failed_items.append(item_id)
 
         print(f"Deletion Summary: {success_count} items successfully deleted.")
         if failure_count > 0:
@@ -205,6 +219,10 @@ class DataCleaner:
         # print(f"Number of entries without TOTP: {count_no_totp}")
         print(f"Number of duplicate items: {len(deleted_entries)}\n")
 
+        if len(deleted_entries)<1:
+            print("No duplicates found, Terminating Program")
+            sys.exit()
+
     def get_cleaned_entries(self):
         return self.cleaned_entries
 
@@ -266,7 +284,6 @@ if __name__ == "__main__":
     validator.load_deleted_entries(cleaner.deleted_entries)
     validator.validate_deleted_entries()
 
-   
     client.delete_items(cleaner.deleted_entries)
 
     
