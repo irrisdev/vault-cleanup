@@ -7,15 +7,17 @@ This project is designed to clean duplicates in a Bitwarden vault by processing 
    Ensure you have the Bitwarden CLI installed. You can download and install it from the [official Bitwarden CLI documentation](https://bitwarden.com/help/cli/).
 
 2. **Configuration and Authentication**:
-
-Before running the script, you need to logout.
-
-- https://bitwarden.com
+ 
+You need to get the api keys for client id and secret:
+- Goto https://bitwarden.com
 - setting
 - security
 - view api key
 - enter password master
 - copy clinet id and secret
+
+## Manual Setup
+Then: if you don't want to use `login.py` script, you can do it manually:
 
 - Configure the Bitwarden CLI server with:
    ```bash
