@@ -74,26 +74,21 @@ def login_bw(client_id=None, client_secret=None):
     
     # Run the bw login command with the environment variables
     login_command = "bw login --apikey"
-    login_output = run_command(f"BW_CLIENTID=$BW_CLIENTID BW_CLIENTSECRET=$BW_CLIENTSECRET {login_command}")
+    run_command(f"BW_CLIENTID=$BW_CLIENTID BW_CLIENTSECRET=$BW_CLIENTSECRET {login_command}")
 
+def unlock_bw():
+    master_password = getpass.getpass("Enter your Bitwarden Master Password: ")
+    print("Unlocking Bitwarden Vault...")
+    # --raw flag is for return only session key
+    session_key = run_command(f"bw unlock {master_password} --raw")
+    print('Session key:', session_key)
     # Extract the session key from the login output
-    session_key = None
-    for line in login_output.splitlines():
-        if "BW_SESSION" in line:
-            session_key = line.split(" ")[-1].strip()
-            break
-
     if session_key:
         os.environ["BW_SESSION"] = session_key
         print("Session key has been set as an environment variable.")
     else:
         print("Failed to obtain the session key.")
         sys.exit(1)
-
-def unlock_bw():
-    master_password = getpass.getpass("Enter your Bitwarden Master Password: ")
-    print("Unlocking Bitwarden Vault...")
-    run_command(f"bw unlock {master_password} --raw")
 
 def serve_bw():
     print("Starting Bitwarden serve...")
