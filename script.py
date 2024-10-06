@@ -1,7 +1,6 @@
 import hashlib
 import os
 import sys
-from dotenv import load_dotenv
 import requests
 import concurrent.futures
 
@@ -267,7 +266,8 @@ class Validator:
 
 if __name__ == "__main__":
 
-    load_dotenv()
+    # set environment variables
+    os.environ["URL"] = "http://localhost:8087"
 
     # Initialize the classes
     client = APIClient()
@@ -282,10 +282,7 @@ if __name__ == "__main__":
 
     validator.load_cleaned_entries(cleaner.cleaned_entries)
     validator.load_deleted_entries(cleaner.deleted_entries)
-    validator.validate_deleted_entries()
-
-    client.delete_items(cleaner.deleted_entries)
-
     
-
-
+    validator.validate_deleted_entries()
+    
+    client.delete_items(cleaner.deleted_entries)
